@@ -1,0 +1,16 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { PageShell } from '@/components/layout';
+import { Card } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { DrawingTool } from '@/components/map/DrawingTool';
+import { api } from '@/api/endpoints';
+
+export function ProjectCreate() {
+  const [step, setStep] = useState(1); const [name, setName] = useState(''); const [description, setDescription] = useState(''); const [type, setType] = useState<'carbon' | 'biodiversity'>('carbon'); const [tags, setTags] = useState(''); const [siteName, setSiteName] = useState(''); const [polygon, setPolygon] = useState<GeoJSON.Polygon>(); const [error, setError] = useState(''); const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const next = (event: React.FormEvent) => { event.preventDefault(); if (!name.trim()) { setError('A project name is required.'); return; } setError(''); setStep(2); };
+  const save = async () => { if (!polygon || !siteName.trim()) { setError('Provide a site name and draw its boundary.'); return; } setLoading(true); setError(''); try { const project = await api.projects.createProject({ name, description, project_type: type, tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) }); await api.sites.createSite(project.id, { name: siteName, geojson: polygon, ecosystem_type: type === 'carbon' ? 'Forest' : 'Habitat', monitoring_start_date: new Date().toISOString().slice(0, 10) }); navigate(`/projects/${project.id}`); } catch { setError('Could not save the project. Check the API connection and try again.'); } finally { setLoading(false); } };
+  return <PageShell><div className="mx-auto max-w-3xl"><h1 className="mb-2 text-2xl">Create a project</h1><p className="mb-6 text-sm text-charcoal/70">Step {step} of 2</p><Card>{error && <p className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}{step === 1 ? <form onSubmit={next} className="space-y-4"><Input label="Project name" value={name} onChange={(event) => setName(event.target.value)} required /><label className="block text-sm font-medium">Description<textarea className="mt-1 w-full rounded-lg border p-2" value={description} onChange={(event) => setDescription(event.target.value)} rows={4} /></label><label className="block text-sm font-medium">Project type<select className="mt-1 w-full rounded-lg border p-2" value={type} onChange={(event) => setType(event.target.value as 'carbon' | 'biodiversity')}><option value="carbon">Carbon</option><option value="biodiversity">Biodiversity</option></select></label><Input label="Tags (comma-separated)" value={tags} onChange={(event) => setTags(event.target.value)} /><div className="flex justify-end"><Button type="submit">Next: add site</Button></div></form> : <div className="space-y-4"><Input label="First site name" value={siteName} onChange={(event) => setSiteName(event.target.value)} required /><DrawingTool onComplete={setPolygon} />{polygon && <p className="text-sm text-sage">Boundary ready to save.</p>}<div className="flex justify-between"><Button variant="outline" onClick={() => setStep(1)}>Back</Button><Button onClick={save} isLoading={loading}>Create project and site</Button></div></div>}</Card></div></PageShell>;
+}

@@ -1,0 +1,40 @@
+[project]
+name = "darukaa-earth"
+version = "0.1.0"
+description = "Darukaa.Earth backend"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg",
+    "alembic",
+    "pydantic[email]>=2.0",
+    "pydantic-settings>=2.0",
+    "python-jose[cryptography]",
+    "passlib[bcrypt]",
+    "geoalchemy2",
+    "shapely",
+    "python-multipart",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "black",
+    "ruff"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 88
+target-version = 'py310'
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

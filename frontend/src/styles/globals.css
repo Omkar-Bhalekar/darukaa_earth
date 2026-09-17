@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-off-white text-charcoal font-sans;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-semibold text-forest-green;
+  }
+}
+
+@layer components {
+  .smooth-transition {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-sage/50 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-sage;
+}
+
+/* Map container styles */
+.map-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Skeleton Loading Animation */
+@keyframes pulse-shimmer {
+  0% {
+    background-color: #e2e8f0;
+  }
+  50% {
+    background-color: #cbd5e1;
+  }
+  100% {
+    background-color: #e2e8f0;
+  }
+}
+
+.skeleton {
+  animation: pulse-shimmer 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
