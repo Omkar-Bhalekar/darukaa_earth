@@ -1,7 +1,9 @@
-from pydantic import BaseModel
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime
+
+from pydantic import BaseModel
+
 
 class ProjectCreate(BaseModel):
     name: str
@@ -9,11 +11,13 @@ class ProjectCreate(BaseModel):
     project_type: str
     tags: Optional[List[str]] = []
 
+
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     project_type: Optional[str] = None
     tags: Optional[List[str]] = None
+
 
 class ProjectResponse(BaseModel):
     id: UUID
@@ -23,8 +27,9 @@ class ProjectResponse(BaseModel):
     tags: List[str]
     site_count: int
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
+
 
 class ProjectListResponse(BaseModel):
     data: List[ProjectResponse]

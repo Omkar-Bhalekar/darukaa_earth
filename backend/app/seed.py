@@ -1,34 +1,32 @@
 import asyncio
+import json
 import math
 import random
 from datetime import date
+
 from dateutil.relativedelta import relativedelta
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import engine, Base
-from app.models.user import User
+from sqlalchemy import func, select
+
+from app.auth.security import hash_password
+from app.models.metric import SiteMetric
 from app.models.project import Project
 from app.models.site import Site
-from app.models.metric import SiteMetric
-from app.auth.security import hash_password
-from sqlalchemy import func
-import json
+from app.models.user import User
+
 
 def generate_polygon(lat, lon):
     s = random.uniform(0.006, 0.02)
     return {
         "type": "Polygon",
-        "coordinates": [[
-            [lon, lat],
-            [lon + s, lat],
-            [lon + s, lat + s],
-            [lon, lat + s],
-            [lon, lat]
-        ]]
+        "coordinates": [
+            [[lon, lat], [lon + s, lat], [lon + s, lat + s], [lon, lat + s], [lon, lat]]
+        ],
     }
+
 
 async def seed():
     from app.database import AsyncSessionLocal
+
     async with AsyncSessionLocal() as db:
         # Demo User
         res = await db.execute(select(User).filter(User.email == "demo@darukaa.earth"))
@@ -37,7 +35,7 @@ async def seed():
             user = User(
                 email="demo@darukaa.earth",
                 hashed_password=hash_password("demo1234"),
-                name="Demo Admin"
+                name="Demo Admin",
             )
             db.add(user)
             await db.commit()
@@ -47,20 +45,37 @@ async def seed():
             print("Demo user already exists")
 
         projects_data = [
-            {"name": "Western Ghats Reforestation Initiative", "type": "carbon", "lat": 12.5, "lon": 75.5},
-            {"name": "Sundarbans Mangrove Restoration", "type": "biodiversity", "lat": 21.9, "lon": 89.2},
-            {"name": "Cerrado Savanna Biodiversity Corridor", "type": "biodiversity", "lat": -14.2, "lon": -47.5}
+            {
+                "name": "Western Ghats Reforestation Initiative",
+                "type": "carbon",
+                "lat": 12.5,
+                "lon": 75.5,
+            },
+            {
+                "name": "Sundarbans Mangrove Restoration",
+                "type": "biodiversity",
+                "lat": 21.9,
+                "lon": 89.2,
+            },
+            {
+                "name": "Cerrado Savanna Biodiversity Corridor",
+                "type": "biodiversity",
+                "lat": -14.2,
+                "lon": -47.5,
+            },
         ]
 
         for p_data in projects_data:
-            res = await db.execute(select(Project).filter(Project.name == p_data["name"]))
+            res = await db.execute(
+                select(Project).filter(Project.name == p_data["name"])
+            )
             if not res.scalar_one_or_none():
                 proj = Project(
                     owner_id=user.id,
                     name=p_data["name"],
                     description=f"Demo project for {p_data['name']}",
                     project_type=p_data["type"],
-                    tags=["demo", p_data["type"]]
+                    tags=["demo", p_data["type"]],
                 )
                 db.add(proj)
                 await db.commit()
@@ -72,8 +87,17 @@ async def seed():
                     lon = p_data["lon"] + random.uniform(-0.1, 0.1)
                     geojson = generate_polygon(lat, lon)
                     geojson_str = json.dumps(geojson)
-                    
-                    area_res = await db.execute(select(func.ST_Area(func.ST_GeomFromGeoJSON(geojson_str).cast(func.Geography())) / 10000))
+
+                    area_res = await db.execute(
+                        select(
+                            func.ST_Area(
+                                func.ST_GeomFromGeoJSON(geojson_str).cast(
+                                    func.Geography()
+                                )
+                            )
+                            / 10000
+                        )
+                    )
                     area_hectares = area_res.scalar_one()
 
                     site = Site(
@@ -82,7 +106,7 @@ async def seed():
                         ecosystem_type="Forest",
                         monitoring_start_date=date.today() - relativedelta(months=36),
                         geom=func.ST_GeomFromGeoJSON(geojson_str),
-                        area_hectares=area_hectares
+                        area_hectares=area_hectares,
                     )
                     db.add(site)
                     await db.commit()
@@ -94,9 +118,14 @@ async def seed():
                         L = 85
                         k = 0.15
                         t0 = 18
-                        canopy = L / (1 + math.exp(-k*(m-t0))) + random.gauss(0, 2)
-                        ndvi = 0.3 + 0.4*(m/36) + 0.05*math.sin(2*math.pi*m/12) + random.gauss(0, 0.03)
-                        carbon = 5 + (10 * (m/36)) + random.gauss(0, 0.5)
+                        canopy = L / (1 + math.exp(-k * (m - t0))) + random.gauss(0, 2)
+                        ndvi = (
+                            0.3
+                            + 0.4 * (m / 36)
+                            + 0.05 * math.sin(2 * math.pi * m / 12)
+                            + random.gauss(0, 0.03)
+                        )
+                        carbon = 5 + (10 * (m / 36)) + random.gauss(0, 0.5)
 
                         bio_index = 0.3
                         if m >= 18:
@@ -113,10 +142,11 @@ async def seed():
                             canopy_cover_pct=max(0, min(100, canopy)),
                             ndvi=max(0, min(1, ndvi)),
                             carbon_tco2e=max(0, carbon),
-                            biodiversity_index=max(0, min(1, bio_index))
+                            biodiversity_index=max(0, min(1, bio_index)),
                         )
                         db.add(metric)
                     await db.commit()
+
 
 if __name__ == "__main__":
     asyncio.run(seed())

@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, projects, sites, metrics
+
 from app.config import settings
+from app.routers import auth, metrics, projects, sites
+
 app = FastAPI(title="Darukaa.Earth API")
 
 app.add_middleware(
@@ -16,6 +18,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(sites.router)
 app.include_router(metrics.router)
+
 
 @app.get("/")
 async def root():

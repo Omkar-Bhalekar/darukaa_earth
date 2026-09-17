@@ -1,7 +1,9 @@
-from pydantic import BaseModel
-from typing import Optional, List
-from uuid import UUID
 from datetime import date
+from typing import List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel
+
 
 class MetricResponse(BaseModel):
     id: UUID
@@ -11,8 +13,9 @@ class MetricResponse(BaseModel):
     ndvi: Optional[float] = None
     carbon_tco2e: Optional[float] = None
     biodiversity_index: Optional[float] = None
-    
+
     model_config = {"from_attributes": True}
+
 
 class MetricsListResponse(BaseModel):
     data: List[MetricResponse]
