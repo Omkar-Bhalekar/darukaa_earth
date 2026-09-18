@@ -1,5 +1,4 @@
 import asyncio
-import ssl
 from logging.config import fileConfig
 
 import geoalchemy2
@@ -55,17 +54,10 @@ async def run_async_migrations() -> None:
     # async_engine_from_config re-parses the URL and drops connect_args on
     # some SQLAlchemy + asyncpg version combos, causing ConnectionRefusedError
     # when TLS is required (Render external host).
-    db_url = settings.DATABASE_URL
-    if "render.com" in db_url:
-        ssl_ctx = ssl.create_default_context()
-        connect_args = {"ssl": ssl_ctx}
-    else:
-        connect_args = {}
-
     connectable = create_async_engine(
-        db_url,
+        settings.async_database_url,
         poolclass=pool.NullPool,
-        connect_args=connect_args,
+        connect_args=settings.database_connect_args,
     )
 
     async with connectable.connect() as connection:

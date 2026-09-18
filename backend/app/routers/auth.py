@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -38,17 +39,34 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
 async def register(
     user_in: UserCreate, response: Response, db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(User).filter(User.email == user_in.email))
-    if result.scalar_one_or_none():
+    try:
+        result = await db.execute(select(User).filter(User.email == user_in.email))
+        if result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+
+        hashed_pwd = hash_password(user_in.password)
+        new_user = User(
+            email=user_in.email, hashed_password=hashed_pwd, name=user_in.name
+        )
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+    except HTTPException:
+        raise
+    except IntegrityError:
+        await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
         )
-
-    hashed_pwd = hash_password(user_in.password)
-    new_user = User(email=user_in.email, hashed_password=hashed_pwd, name=user_in.name)
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
+    except SQLAlchemyError as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database is unavailable. Try again shortly.",
+        ) from exc
 
     access_token = create_access_token(new_user.id)
     refresh_token = create_refresh_token(new_user.id)
