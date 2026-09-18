@@ -1,0 +1,17 @@
+{
+  "name": "darukaa-earth",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "format:frontend": "prettier --write \"frontend/**/*.{ts,tsx,css,json,md}\""
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.3.3"
+  },
+  "lint-staged": {
+    "frontend/**/*.{ts,tsx,css,json}": "prettier --write --config frontend/.prettierrc",
+    "backend/**/*.py": "node scripts/ruff-staged.cjs"
+  }
+}

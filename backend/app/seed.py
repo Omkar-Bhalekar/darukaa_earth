@@ -1,6 +1,5 @@
 import asyncio
 import json
-import math
 import random
 from datetime import date
 
@@ -8,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import func, select
 
 from app.auth.security import hash_password
-from app.models.metric import SiteMetric
+from app.metrics_synth import synthetic_monthly_metrics
 from app.models.project import Project
 from app.models.site import Site
 from app.models.user import User
@@ -113,38 +112,7 @@ async def seed():
                     await db.refresh(site)
 
                     start_date = site.monitoring_start_date
-                    for m in range(36):
-                        m_date = start_date + relativedelta(months=m)
-                        L = 85
-                        k = 0.15
-                        t0 = 18
-                        canopy = L / (1 + math.exp(-k * (m - t0))) + random.gauss(0, 2)
-                        ndvi = (
-                            0.3
-                            + 0.4 * (m / 36)
-                            + 0.05 * math.sin(2 * math.pi * m / 12)
-                            + random.gauss(0, 0.03)
-                        )
-                        carbon = 5 + (10 * (m / 36)) + random.gauss(0, 0.5)
-
-                        bio_index = 0.3
-                        if m >= 18:
-                            bio_index = 0.7
-                        elif m >= 12:
-                            bio_index = 0.5
-                        elif m >= 6:
-                            bio_index = 0.4
-                        bio_index += random.gauss(0, 0.05)
-
-                        metric = SiteMetric(
-                            site_id=site.id,
-                            recorded_date=m_date,
-                            canopy_cover_pct=max(0, min(100, canopy)),
-                            ndvi=max(0, min(1, ndvi)),
-                            carbon_tco2e=max(0, carbon),
-                            biodiversity_index=max(0, min(1, bio_index)),
-                        )
-                        db.add(metric)
+                    db.add_all(synthetic_monthly_metrics(site.id, start_date))
                     await db.commit()
 
 

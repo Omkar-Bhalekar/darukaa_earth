@@ -3,15 +3,20 @@ import uuid
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func, select
+from geoalchemy2 import Geography
+from sqlalchemy import cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.database import get_db
+from app.geo import polygon_from_geojson
+from app.metrics_synth import synthetic_monthly_metrics
 from app.models.project import Project
 from app.models.site import Site
 from app.models.user import User
 from app.schemas.site import SiteCreate, SiteGeoJSON, SiteResponse
+
+GEOG = Geography(geometry_type="POLYGON", srid=4326)
 
 router = APIRouter(prefix="/api", tags=["sites"])
 
@@ -34,26 +39,28 @@ async def create_site(
     if not proj_res.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Project not found")
 
-    geojson_str = json.dumps(site_in.geojson)
-
-    # Calculate area and convert to geography using PostGIS
-    area_res = await db.execute(
-        select(
-            func.ST_Area(func.ST_GeomFromGeoJSON(geojson_str).cast(func.Geography()))
-            / 10000
-        )
+    polygon = polygon_from_geojson(site_in.geojson)
+    geojson_str = json.dumps(polygon)
+    geom_expr = cast(
+        func.ST_SetSRID(func.ST_GeomFromGeoJSON(geojson_str), 4326), GEOG
     )
-    area_hectares = area_res.scalar_one()
+
+    area_res = await db.execute(select(func.ST_Area(geom_expr) / 10000.0))
+    area_hectares = float(area_res.scalar_one() or 0)
 
     new_site = Site(
         project_id=project_id,
         name=site_in.name,
         ecosystem_type=site_in.ecosystem_type,
         monitoring_start_date=site_in.monitoring_start_date,
-        geom=func.ST_GeomFromGeoJSON(geojson_str),
+        geom=geom_expr,
         area_hectares=area_hectares,
     )
     db.add(new_site)
+    await db.flush()
+    db.add_all(
+        synthetic_monthly_metrics(new_site.id, site_in.monitoring_start_date)
+    )
     await db.commit()
     await db.refresh(new_site)
 

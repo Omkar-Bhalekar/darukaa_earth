@@ -8,6 +8,7 @@ import { ProjectCreate } from '@/pages/ProjectCreate';
 import { ProjectDetail } from '@/pages/ProjectDetail';
 import { MapExplorer } from '@/pages/MapExplorer';
 import { SiteDetail } from '@/pages/SiteDetail';
+import { SiteCreate } from '@/pages/SiteCreate';
 
 const AppRoutes = () => (
   <Routes>
@@ -17,6 +18,7 @@ const AppRoutes = () => (
     <Route element={<ProtectedRoute />}>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/projects/new" element={<ProjectCreate />} />
+      <Route path="/projects/:id/sites/new" element={<SiteCreate />} />
       <Route path="/projects/:id" element={<ProjectDetail />} />
       <Route path="/map" element={<MapExplorer />} />
       <Route path="/sites/:id" element={<SiteDetail />} />
