@@ -2,11 +2,14 @@
   - type: web
     name: darukaa-earth-backend
     runtime: python
+    pythonVersion: "3.12.10"
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     preDeployCommand: alembic upgrade head
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"
       - key: DATABASE_URL
         sync: false          # managed manually in the Render dashboard
       - key: JWT_SECRET
