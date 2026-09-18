@@ -1,11 +1,12 @@
 import asyncio
+import ssl
 from logging.config import fileConfig
 
 import geoalchemy2
 import geoalchemy2.alembic_helpers
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 from app.config import settings
@@ -50,10 +51,21 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # Use create_async_engine directly so connect_args (ssl) are honoured.
+    # async_engine_from_config re-parses the URL and drops connect_args on
+    # some SQLAlchemy + asyncpg version combos, causing ConnectionRefusedError
+    # when TLS is required (Render external host).
+    db_url = settings.DATABASE_URL
+    if "render.com" in db_url:
+        ssl_ctx = ssl.create_default_context()
+        connect_args = {"ssl": ssl_ctx}
+    else:
+        connect_args = {}
+
+    connectable = create_async_engine(
+        db_url,
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     async with connectable.connect() as connection:
