@@ -1,4 +1,4 @@
-services:
+﻿services:
   - type: web
     name: darukaa-earth-backend
     runtime: python
@@ -20,7 +20,7 @@ services:
       - key: COOKIE_SECURE
         value: true
       - key: FRONTEND_URL
-        value: https://darukaa.earth
+        value: https://darukaa-earth-frontend-dkmb.onrender.com
 
   - type: web
     name: darukaa-earth-frontend
