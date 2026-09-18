@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '@/auth/AuthContext';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -22,7 +23,11 @@ export const Register: React.FC = () => {
       await register({ name, email, password });
       navigate('/dashboard');
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      if (axios.isAxiosError(err) && typeof err.response?.data?.detail === 'string') {
+        setError(err.response.data.detail);
+      } else {
+        setError('Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

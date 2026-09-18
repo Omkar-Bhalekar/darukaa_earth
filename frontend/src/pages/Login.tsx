@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '@/auth/AuthContext';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -21,7 +22,11 @@ export const Login: React.FC = () => {
       await login({ email, password });
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid credentials. Please try again.');
+      if (axios.isAxiosError(err) && typeof err.response?.data?.detail === 'string') {
+        setError(err.response.data.detail);
+      } else {
+        setError('Invalid credentials. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
