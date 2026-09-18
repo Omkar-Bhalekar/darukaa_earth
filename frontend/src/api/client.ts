@@ -5,10 +5,15 @@ const client = axios.create({
   withCredentials: true,
 });
 
+const PUBLIC_PATHS = ['/login', '/register'];
+
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (
+      error.response?.status === 401 &&
+      !PUBLIC_PATHS.includes(window.location.pathname)
+    ) {
       window.location.href = '/login';
     }
     return Promise.reject(error);
